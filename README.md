@@ -22,7 +22,7 @@ This extension is in an early ALPHA state. API might change at any time.
     <dependency>
         <groupId>com.github.jenspiegsa</groupId>
         <artifactId>wiremock-extension</artifactId>
-        <version>0.1</version>
+        <version>0.1.1</version>
     </dependency>
 
 ### Step 3. Annotate test classes by `@ExtendsWith(MockitoExtension.class)`
