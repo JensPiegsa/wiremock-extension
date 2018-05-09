@@ -1,5 +1,7 @@
 # wiremock-extension
 
+[![codecov](https://codecov.io/gh/JensPiegsa/wiremock-extension/branch/master/graph/badge.svg)](https://codecov.io/gh/JensPiegsa/wiremock-extension)
+
 The wiremock-extension is a [JUnit 5](https://junit.org/junit5/) [extension](https://junit.org/junit5/docs/current/user-guide/#extensions) that starts [WireMock](http://wiremock.org/) before running tests and stops it afterwards. It is similar to the [WireMockRule](https://github.com/tomakehurst/wiremock/blob/master/src/main/java/com/github/tomakehurst/wiremock/junit/WireMockRule.java) ([docs](http://wiremock.org/docs/junit-rule/)) for JUnit 4.
 
 ## Disclaimer
