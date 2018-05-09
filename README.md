@@ -6,7 +6,7 @@ The wiremock-extension is a [JUnit 5](https://junit.org/junit5/) [extension](htt
 
 ## Disclaimer
 
-This extension is in an early ALPHA state. API might change at any time.
+This extension is in an early alpha state. API might change at any time.
 
 ## Usage
 
@@ -29,7 +29,7 @@ This extension is in an early ALPHA state. API might change at any time.
 
 ### Step 3. Annotate test classes by `@ExtendsWith(MockitoExtension.class)`
 
-* see `ExampleTest` for further configuration and different use cases.
+* see [`ExampleTest`](https://github.com/JensPiegsa/wiremock-extension/blob/master/src/test/java/com/github/jenspiegsa/mockitoextension/ExampleTest.java) for further configuration and different use cases.
 
 ## Contribute
 
