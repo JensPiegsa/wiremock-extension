@@ -5,9 +5,9 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.jens-piegsa.junit</groupId>
+	<groupId>com.github.jenspiegsa</groupId>
 	<artifactId>wiremock-extension</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>0.1.1</version>
 
 	<properties>
 		<java.min.version>1.8</java.min.version>
@@ -94,6 +94,29 @@
 					</dependency>
 				</dependencies>
 			</plugin>
+
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.4.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>0.5</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<targetClasses>
+						<param>com.jenspiegsa.junit.*</param>
+					</targetClasses>
+					<excludedTestClasses>
+						<class>com.github.jenspiegsa.mockitoextension.WireMockExtensionTest$FailOnUnmatchedRequestsTestCase</class>
+						<class>com.github.jenspiegsa.mockitoextension.WireMockExtensionTest$FailOnNearMissedRequestsTestCase</class>
+						<class>com.github.jenspiegsa.mockitoextension.WireMockExtensionTest$TolerateUnmatchedRequestsTestCase</class>
+					</excludedTestClasses>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -108,6 +131,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.github.tomakehurst</groupId>
@@ -133,6 +157,13 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-params</artifactId>
 			<version>${junit.jupiter.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<version>${junit.platform.version}</version>
 			<scope>test</scope>
 		</dependency>
 

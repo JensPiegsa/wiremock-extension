@@ -1,4 +1,4 @@
-package com.jens_piegsa.junit;
+package com.github.jenspiegsa.mockitoextension;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,31 +13,34 @@ import javax.ws.rs.core.UriBuilder;
 /**
  * @author Jens Piegsa
  */
-public class ExampleClient {
+public class SampleClient {
 
-	private static final Logger log = Logger.getLogger(ExampleClient.class.getSimpleName());
+	private static final Logger log = Logger.getLogger(SampleClient.class.getSimpleName());
 
 	private final Client client;
 	final WebTarget target;
 
-	public ExampleClient(final String uri) {
+	public SampleClient(final String uri) {
 		client = ClientBuilder.newClient();
 		target = client.target(UriBuilder.fromUri(uri).build());
-		log.info(() -> "uri: " + uri);
+		log.info(() -> "Sample client targeting uri: " + uri);
 	}
 
 	public boolean isOk() {
 		try {
 			final Response response = target.request().get();
 			final int status = response.getStatus();
-			final boolean ok = status == Response.Status.OK.getStatusCode();
 			response.close();
-			return ok;
+			return status == Response.Status.OK.getStatusCode();
 		} catch (final ResponseProcessingException e) {
 			e.getResponse().close();
 		} catch (final ProcessingException e) {
 			log.log(Level.WARNING, e, e::getMessage);
 		}
 		return false;
+	}
+
+	public void close() {
+		client.close();
 	}
 }
