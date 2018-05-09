@@ -20,9 +20,9 @@ This extension is in an early ALPHA state. API might change at any time.
 ### Step 2. Add the wiremock-extension dependency
 
     <dependency>
-        <groupId>com.github.jenspiegsa</groupId>
+        <groupId>com.github.JensPiegsa</groupId>
         <artifactId>wiremock-extension</artifactId>
-        <version>0.1.1</version>
+        <version>0.1.2</version>
     </dependency>
 
 ### Step 3. Annotate test classes by `@ExtendsWith(MockitoExtension.class)`
