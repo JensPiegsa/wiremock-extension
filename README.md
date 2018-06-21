@@ -24,7 +24,7 @@ This extension is in an early alpha state. API might change at any time.
     <dependency>
         <groupId>com.github.JensPiegsa</groupId>
         <artifactId>wiremock-extension</artifactId>
-        <version>0.1.2</version>
+        <version>0.1.3</version>
     </dependency>
 
 ### Step 3. Annotate test classes by `@ExtendsWith(MockitoExtension.class)`
