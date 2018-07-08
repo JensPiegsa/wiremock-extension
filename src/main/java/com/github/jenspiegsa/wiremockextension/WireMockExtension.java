@@ -91,12 +91,12 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback 
 
 	@Override
 	public void afterEach(final ExtensionContext context) {
-		checkForUnmatchedRequests(context);
 		final List<WireMockServer> servers = serversByTestId.get(context.getUniqueId());
-
 		if (servers != null) {
 			servers.forEach(WireMockServer::stop);
 		}
+
+		checkForUnmatchedRequests(context);
 	}
 
 	private void checkForUnmatchedRequests(final ExtensionContext context) {
