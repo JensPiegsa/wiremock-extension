@@ -1,4 +1,4 @@
-package com.github.jenspiegsa.mockitoextension;
+package com.github.jenspiegsa.wiremockextension;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;

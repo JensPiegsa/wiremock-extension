@@ -1,4 +1,4 @@
-package com.github.jenspiegsa.mockitoextension;
+package com.github.jenspiegsa.wiremockextension;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 

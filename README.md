@@ -24,12 +24,12 @@ This extension is in an early alpha state. API might change at any time.
     <dependency>
         <groupId>com.github.JensPiegsa</groupId>
         <artifactId>wiremock-extension</artifactId>
-        <version>0.1.2</version>
+        <version>0.2.0</version>
     </dependency>
 
-### Step 3. Annotate test classes by `@ExtendsWith(MockitoExtension.class)`
+### Step 3. Annotate test classes by `@ExtendsWith(WireMockExtension.class)`
 
-* see [`ExampleTest`](https://github.com/JensPiegsa/wiremock-extension/blob/master/src/test/java/com/github/jenspiegsa/mockitoextension/ExampleTest.java) for further configuration and different use cases.
+* see [`ExampleTest`](https://github.com/JensPiegsa/wiremock-extension/blob/master/src/test/java/com/github/jenspiegsa/wiremockextension/ExampleTest.java) for further configuration and different use cases.
 
 ## Contribute
 

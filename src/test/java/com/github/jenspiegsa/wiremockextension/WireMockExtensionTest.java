@@ -1,6 +1,6 @@
-package com.github.jenspiegsa.mockitoextension;
+package com.github.jenspiegsa.wiremockextension;
 
-import static com.github.jenspiegsa.mockitoextension.ManagedWireMockServer.with;
+import static com.github.jenspiegsa.wiremockextension.ManagedWireMockServer.with;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.givenThat;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;

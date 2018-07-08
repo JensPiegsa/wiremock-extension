@@ -1,6 +1,6 @@
-package com.github.jenspiegsa.mockitoextension;
+package com.github.jenspiegsa.wiremockextension;
 
-import static com.github.jenspiegsa.mockitoextension.ManagedWireMockServer.with;
+import static com.github.jenspiegsa.wiremockextension.ManagedWireMockServer.with;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.givenThat;
@@ -13,11 +13,6 @@ import static org.assertj.core.api.BDDAssertions.then;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
 
-import com.github.jenspiegsa.mockitoextension.ConfigureWireMock;
-import com.github.jenspiegsa.mockitoextension.InjectServer;
-import com.github.jenspiegsa.mockitoextension.SampleClient;
-import com.github.jenspiegsa.mockitoextension.WireMockExtension;
-import com.github.jenspiegsa.mockitoextension.WireMockSettings;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.Options;
