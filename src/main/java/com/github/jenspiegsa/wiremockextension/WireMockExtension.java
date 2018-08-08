@@ -1,6 +1,8 @@
 package com.github.jenspiegsa.wiremockextension;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.junit.platform.commons.util.AnnotationUtils.isAnnotated;
 import static org.junit.platform.commons.util.CollectionUtils.toUnmodifiableList;
@@ -25,12 +27,13 @@ import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionConfigurationException;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.junit.platform.commons.support.AnnotationSupport;
 
 /**
  * @author Jens Piegsa
  */
-public class WireMockExtension implements BeforeEachCallback, AfterEachCallback {
+public class WireMockExtension implements BeforeEachCallback, AfterEachCallback, TestInstancePostProcessor {
 
 	private boolean generalFailOnUnmatchedRequests;
 	private final Map<String, List<WireMockServer>> serversByTestId = new LinkedHashMap<>();
@@ -46,14 +49,7 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback 
 	}
 
 	@Override
-	public void beforeEach(final ExtensionContext context) throws IllegalAccessException {
-
-		final Optional<WireMockSettings> wireMockSettings = retrieveAnnotation(context, WireMockSettings.class);
-		generalFailOnUnmatchedRequests = wireMockSettings
-				.map(WireMockSettings::failOnUnmatchedRequests)
-				.orElse(generalFailOnUnmatchedRequests);
-
-		final Object testInstance = context.getRequiredTestInstance();
+	public void postProcessTestInstance(final Object testInstance, final ExtensionContext context) throws Exception {
 
 		final List<WireMockServer> servers = new ArrayList<>();
 		for (final Field field : retrieveAnnotatedFields(context, Managed.class, WireMockServer.class)) {
@@ -73,30 +69,66 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback 
 				options = wireMockConfig();
 			}
 
-			final WireMockServer server = new WireMockServer(options);
-			servers.add(server);
+			WireMockServer server = null;
 			for (final Field field : retrieveAnnotatedFields(context, InjectServer.class, WireMockServer.class)) {
+				if (server == null) {
+					server = new WireMockServer(options);
+					servers.add(server);
+				}
 				makeAccessible(field).set(testInstance, server);
 			}
 		}
 
+		serversByTestId.computeIfAbsent(context.getUniqueId(), k -> new ArrayList<>())
+				.addAll(servers);
+
 		for (final WireMockServer server : servers) {
 			server.start();
 			WireMock.configureFor("localhost", server.port());
-			serversByTestId
-					.computeIfAbsent(context.getUniqueId(), k -> new ArrayList<>())
-					.addAll(servers);
 		}
 	}
 
 	@Override
-	public void afterEach(final ExtensionContext context) {
-		final List<WireMockServer> servers = serversByTestId.get(context.getUniqueId());
-		if (servers != null) {
-			servers.forEach(WireMockServer::stop);
-		}
+	public void beforeEach(final ExtensionContext context) {
 
-		checkForUnmatchedRequests(context);
+		final Optional<WireMockSettings> wireMockSettings = retrieveAnnotation(context, WireMockSettings.class);
+		generalFailOnUnmatchedRequests = wireMockSettings
+				.map(WireMockSettings::failOnUnmatchedRequests)
+				.orElse(generalFailOnUnmatchedRequests);
+
+		if (isSimpleCase(context)) {
+			final WireMockServer server = new WireMockServer();
+			serversByTestId.put(context.getUniqueId(), singletonList(server));
+			server.start();
+			WireMock.configureFor("localhost", server.port());
+		}
+	}
+
+	/** @returns {@code true}, if there is no custom annotation / configuration present. */
+	private boolean isSimpleCase(final ExtensionContext context) {
+		boolean isSimpleCase = true;
+		ExtensionContext currentContext = context;
+		while (currentContext != null) {
+			isSimpleCase &= serversByTestId.getOrDefault(currentContext.getUniqueId(), emptyList()).isEmpty();
+			currentContext = currentContext.getParent().orElse(null);
+		}
+		return isSimpleCase;
+	}
+
+	@Override
+	public void afterEach(final ExtensionContext context) {
+
+		ExtensionContext currentContext = context;
+		while (currentContext != null) {
+
+			final List<WireMockServer> servers = serversByTestId.get(currentContext.getUniqueId());
+			if (servers != null) {
+				servers.forEach(WireMockServer::stop);
+			}
+
+			checkForUnmatchedRequests(currentContext);
+			currentContext = currentContext.getParent().orElse(null);
+		}
 	}
 
 	private void checkForUnmatchedRequests(final ExtensionContext context) {
@@ -139,15 +171,11 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback 
 	                                                   final Class<? extends Annotation> annotationType,
 	                                                   final Class<?> fieldType) {
 
-		Optional<ExtensionContext> currentContext = Optional.of(context);
 		final List<Field> annotatedFields = new ArrayList<>();
 
-		while (currentContext.isPresent() && currentContext.get().getElement().isPresent()) {
-			final AnnotatedElement annotatedElement = currentContext.get().getElement().get();
-			if (annotatedElement instanceof Class) {
-				annotatedFields.addAll(findAnnotatedFields((Class<?>) annotatedElement, fieldType, annotationType));
-			}
-			currentContext = currentContext.get().getParent();
+		final AnnotatedElement annotatedElement = context.getElement().orElse(null);
+		if (annotatedElement instanceof Class) {
+			annotatedFields.addAll(findAnnotatedFields((Class<?>) annotatedElement, fieldType, annotationType));
 		}
 		return annotatedFields;
 	}

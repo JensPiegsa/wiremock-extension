@@ -248,6 +248,26 @@ class WireMockExtensionTest {
 		}
 	}
 
+	@Nested
+	@DisplayName("Nested test classes")
+	class NestedTestClasses {
+
+		@Managed WireMockServer serverMock = with(wireMockConfig().dynamicPort());
+
+		@Nested
+		@DisplayName("accessing parent field")
+		class AccessingParentField {
+
+			@Test
+			@DisplayName("should work.")
+			void shouldWork() {
+				serverMock.stubFor(get("/z").willReturn(ok()));
+				then(new SampleClient("http://localhost:" + serverMock.port() + "/z").isOk()).isTrue();
+			}
+		}
+	}
+
+
 	@ExtendWith(WireMockExtension.class)
 	private static abstract class TestBase {
 		@Test
