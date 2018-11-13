@@ -4,8 +4,24 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
-import static org.junit.platform.commons.util.AnnotationUtils.isAnnotated;
-import static org.junit.platform.commons.util.CollectionUtils.toUnmodifiableList;
+import static org.junit.platform.commons.util.ReflectionUtils.makeAccessible;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionConfigurationException;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestInstancePostProcessor;
+import org.junit.platform.commons.support.AnnotationSupport;
+import org.junit.platform.commons.util.AnnotationUtils;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.VerificationException;
@@ -13,22 +29,6 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.Options;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.github.tomakehurst.wiremock.verification.NearMiss;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AccessibleObject;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionConfigurationException;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.TestInstancePostProcessor;
-import org.junit.platform.commons.support.AnnotationSupport;
 
 /**
  * @author Jens Piegsa
@@ -171,29 +171,12 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 	                                                   final Class<? extends Annotation> annotationType,
 	                                                   final Class<?> fieldType) {
 
-		final List<Field> annotatedFields = new ArrayList<>();
-
-		final AnnotatedElement annotatedElement = context.getElement().orElse(null);
-		if (annotatedElement instanceof Class) {
-			annotatedFields.addAll(findAnnotatedFields((Class<?>) annotatedElement, fieldType, annotationType));
-		}
-		return annotatedFields;
-	}
-
-	private static List<Field> findAnnotatedFields(final Class<?> aClass, final Class<?> fieldType,
-	                                               final Class<? extends Annotation> annotationType) {
-
-		return Arrays.stream(aClass.getDeclaredFields())
-				.filter(field -> fieldType.isAssignableFrom(field.getType()))
-				.filter(field -> isAnnotated(field, annotationType))
-				.collect(toUnmodifiableList());
-	}
-
-	@SuppressWarnings("deprecation") // TODO "AccessibleObject.isAccessible()" is deprecated in Java 9
-	private static <T extends AccessibleObject> T makeAccessible(final T object) {
-		if (!object.isAccessible()) {
-			object.setAccessible(true);
-		}
-		return object;
+		return context.getElement()
+			.filter(Class.class::isInstance)
+			.map(Class.class::cast)
+			.map(testInstanceClass ->
+				AnnotationUtils.findAnnotatedFields(testInstanceClass, annotationType, field -> fieldType.isAssignableFrom(field.getType()))
+			)
+			.orElseGet(Collections::emptyList);
 	}
 }
