@@ -32,7 +32,7 @@ public class ManagedWireMockServer extends WireMockServer {
 		return new ManagedWireMockServer(options);
 	}
 
-	public ManagedWireMockServer failOnUnmagedRequest(final boolean failOnUnmatchedRequests) {
+	public ManagedWireMockServer failOnUnmatchedRequest(final boolean failOnUnmatchedRequests) {
 		this.failOnUnmatchedRequests = failOnUnmatchedRequests;
 		return this;
 	}

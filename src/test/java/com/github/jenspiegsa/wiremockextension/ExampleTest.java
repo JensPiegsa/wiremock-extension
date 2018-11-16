@@ -124,7 +124,7 @@ class ExampleTest {
 		@Managed WireMockServer s1 = with(wireMockConfig().dynamicPort());
 		@Managed WireMockServer s2 = with(wireMockConfig().dynamicPort());
 		@Managed WireMockServer s3 = with(wireMockConfig().dynamicPort());
-		@Managed WireMockServer s4 = with(wireMockConfig().dynamicPort()).failOnUnmagedRequest(false);
+		@Managed WireMockServer s4 = with(wireMockConfig().dynamicPort()).failOnUnmatchedRequest(false);
 
 		@Test
 		@DisplayName("should work.")

@@ -82,10 +82,7 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 		serversByTestId.computeIfAbsent(context.getUniqueId(), k -> new ArrayList<>())
 				.addAll(servers);
 
-		for (final WireMockServer server : servers) {
-			server.start();
-			WireMock.configureFor("localhost", server.port());
-		}
+		servers.forEach(WireMockExtension::startServer);
 	}
 
 	@Override
@@ -99,8 +96,7 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 		if (isSimpleCase(context)) {
 			final WireMockServer server = new WireMockServer();
 			serversByTestId.put(context.getUniqueId(), singletonList(server));
-			server.start();
-			WireMock.configureFor("localhost", server.port());
+			startServer(server);
 		}
 	}
 
@@ -123,7 +119,7 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 
 			final List<WireMockServer> servers = serversByTestId.get(currentContext.getUniqueId());
 			if (servers != null) {
-				servers.forEach(WireMockServer::stop);
+				servers.forEach(WireMockExtension::stopServer);
 			}
 
 			checkForUnmatchedRequests(currentContext);
@@ -134,8 +130,8 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 	private void checkForUnmatchedRequests(final ExtensionContext context) {
 		final List<WireMockServer> servers = serversByTestId.get(context.getUniqueId());
 		if (servers != null) {
-			for (final WireMockServer server : servers) {
-				final Boolean mustCheck = Optional.of(server)
+			servers.forEach(server -> {
+				final boolean mustCheck = Optional.of(server)
 						.filter(ManagedWireMockServer.class::isInstance)
 						.map(ManagedWireMockServer.class::cast)
 						.map(ManagedWireMockServer::failOnUnmatchedRequests)
@@ -150,7 +146,7 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 								: VerificationException.forUnmatchedNearMisses(nearMisses);
 					}
 				}
-			}
+			});
 		}
 	}
 
@@ -178,5 +174,16 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 				AnnotationUtils.findAnnotatedFields(testInstanceClass, annotationType, field -> fieldType.isAssignableFrom(field.getType()))
 			)
 			.orElseGet(Collections::emptyList);
+	}
+
+	private static void startServer(final WireMockServer server) {
+		if (!server.isRunning()) {
+			server.start();
+			WireMock.configureFor("localhost", server.port());
+		}
+	}
+
+	private static void stopServer(final WireMockServer server) {
+		server.stop();
 	}
 }
