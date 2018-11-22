@@ -24,6 +24,7 @@ The wiremock-extension is a [JUnit 5](https://junit.org/junit5/) [extension](htt
         <groupId>com.github.JensPiegsa</groupId>
         <artifactId>wiremock-extension</artifactId>
         <version>0.3.2</version>
+        <scope>test</scope>
     </dependency>
 
 ### Step 3. Annotate test classes by `@ExtendsWith(WireMockExtension.class)`
