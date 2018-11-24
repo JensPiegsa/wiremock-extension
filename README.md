@@ -23,7 +23,7 @@ The wiremock-extension is a [JUnit 5](https://junit.org/junit5/) [extension](htt
     <dependency>
         <groupId>com.github.JensPiegsa</groupId>
         <artifactId>wiremock-extension</artifactId>
-        <version>0.3.2</version>
+        <version>0.4.0</version>
         <scope>test</scope>
     </dependency>
 
