@@ -1,19 +1,18 @@
 package com.github.jenspiegsa.wiremockextension;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.Objects.requireNonNull;
 import static org.junit.platform.commons.util.ReflectionUtils.makeAccessible;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -22,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.junit.platform.commons.support.AnnotationSupport;
 import org.junit.platform.commons.util.AnnotationUtils;
+import org.junit.platform.commons.util.ReflectionUtils;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.VerificationException;
@@ -36,7 +36,11 @@ import com.github.tomakehurst.wiremock.verification.NearMiss;
 public class WireMockExtension implements BeforeEachCallback, AfterEachCallback, TestInstancePostProcessor {
 
 	private boolean generalFailOnUnmatchedRequests;
-	private final Map<String, List<WireMockServer>> serversByTestId = new LinkedHashMap<>();
+	/**
+	 * {@link ExtensionContext.Namespace} in which WireMockServers are stored,
+	 * keyed by test class.
+	 */
+	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(WireMockExtension.class);
 
 	// This constructor is invoked by JUnit via reflection
 	@SuppressWarnings("unused")
@@ -51,12 +55,14 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 	@Override
 	public void postProcessTestInstance(final Object testInstance, final ExtensionContext context) throws Exception {
 
-		final List<WireMockServer> servers = new ArrayList<>();
-		for (final Field field : retrieveAnnotatedFields(context, Managed.class, WireMockServer.class)) {
-			servers.add((WireMockServer) requireNonNull(makeAccessible(field).get(testInstance)));
-		}
+		final List<WireMockServer> managedServers = retrieveAnnotatedFields(context, Managed.class, WireMockServer.class).stream()
+			.map(field -> ReflectionUtils.readFieldValue(field, testInstance))
+			.map(Optional::get)
+			.map(WireMockServer.class::cast)
+			.map(Objects::requireNonNull)
+			.collect(Collectors.toList());
 
-		if (servers.isEmpty()) {
+		if (managedServers.isEmpty()) {
 			Options options = null;
 			for (final Field field : retrieveAnnotatedFields(context, ConfigureWireMock.class, Options.class)) {
 				if (options == null) {
@@ -69,20 +75,17 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 				options = wireMockConfig();
 			}
 
-			WireMockServer server = null;
-			for (final Field field : retrieveAnnotatedFields(context, InjectServer.class, WireMockServer.class)) {
-				if (server == null) {
-					server = new WireMockServer(options);
-					servers.add(server);
+			final List<Field> injectedServerFields = retrieveAnnotatedFields(context, InjectServer.class, WireMockServer.class);
+			if (!injectedServerFields.isEmpty()) {
+				final WireMockServer server = new WireMockServer(options);
+				for (final Field field : injectedServerFields) {
+					makeAccessible(field).set(testInstance, server);
 				}
-				makeAccessible(field).set(testInstance, server);
+				context.getStore(NAMESPACE).put(testInstance.getClass(), singletonList(server));
 			}
+		} else {
+			context.getStore(NAMESPACE).put(testInstance.getClass(), managedServers);
 		}
-
-		serversByTestId.computeIfAbsent(context.getUniqueId(), k -> new ArrayList<>())
-				.addAll(servers);
-
-		servers.forEach(WireMockExtension::startServer);
 	}
 
 	@Override
@@ -93,60 +96,43 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 				.map(WireMockSettings::failOnUnmatchedRequests)
 				.orElse(generalFailOnUnmatchedRequests);
 
-		if (isSimpleCase(context)) {
+		final List<WireMockServer> wireMockServers = collectServers(context)
+			.collect(Collectors.toList());
+		if (wireMockServers.isEmpty()) {
+			// Simple case
 			final WireMockServer server = new WireMockServer();
-			serversByTestId.put(context.getUniqueId(), singletonList(server));
+			context.getStore(NAMESPACE).put(context.getRequiredTestClass(), singletonList(server));
 			startServer(server);
+		} else {
+			wireMockServers.forEach(WireMockExtension::startServer);
 		}
 	}
 
-	/** @returns {@code true}, if there is no custom annotation / configuration present. */
-	private boolean isSimpleCase(final ExtensionContext context) {
-		boolean isSimpleCase = true;
-		ExtensionContext currentContext = context;
-		while (currentContext != null) {
-			isSimpleCase &= serversByTestId.getOrDefault(currentContext.getUniqueId(), emptyList()).isEmpty();
-			currentContext = currentContext.getParent().orElse(null);
-		}
-		return isSimpleCase;
-	}
-
+	@SuppressWarnings("unchecked")
 	@Override
 	public void afterEach(final ExtensionContext context) {
-
-		ExtensionContext currentContext = context;
-		while (currentContext != null) {
-
-			final List<WireMockServer> servers = serversByTestId.get(currentContext.getUniqueId());
-			if (servers != null) {
-				servers.forEach(WireMockExtension::stopServer);
-			}
-
-			checkForUnmatchedRequests(currentContext);
-			currentContext = currentContext.getParent().orElse(null);
-		}
+		final List<WireMockServer> wireMockServers = collectServers(context)
+			.collect(Collectors.toList());
+		// Stopping all servers first
+		wireMockServers.forEach(WireMockExtension::stopServer);
+		wireMockServers.forEach(this::checkForUnmatchedRequests);
 	}
 
-	private void checkForUnmatchedRequests(final ExtensionContext context) {
-		final List<WireMockServer> servers = serversByTestId.get(context.getUniqueId());
-		if (servers != null) {
-			servers.forEach(server -> {
-				final boolean mustCheck = Optional.of(server)
-						.filter(ManagedWireMockServer.class::isInstance)
-						.map(ManagedWireMockServer.class::cast)
-						.map(ManagedWireMockServer::failOnUnmatchedRequests)
-						.orElse(generalFailOnUnmatchedRequests);
+	private void checkForUnmatchedRequests(final WireMockServer server) {
+		final boolean mustCheck = Optional.of(server)
+			.filter(ManagedWireMockServer.class::isInstance)
+			.map(ManagedWireMockServer.class::cast)
+			.map(ManagedWireMockServer::failOnUnmatchedRequests)
+			.orElse(generalFailOnUnmatchedRequests);
 
-				if (mustCheck) {
-					final List<LoggedRequest> unmatchedRequests = server.findAllUnmatchedRequests();
-					if (!unmatchedRequests.isEmpty()) {
-						final List<NearMiss> nearMisses = server.findNearMissesForAllUnmatchedRequests();
-						throw nearMisses.isEmpty()
-								? VerificationException.forUnmatchedRequests(unmatchedRequests)
-								: VerificationException.forUnmatchedNearMisses(nearMisses);
-					}
-				}
-			});
+		if (mustCheck) {
+			final List<LoggedRequest> unmatchedRequests = server.findAllUnmatchedRequests();
+			if (!unmatchedRequests.isEmpty()) {
+				final List<NearMiss> nearMisses = server.findNearMissesForAllUnmatchedRequests();
+				throw nearMisses.isEmpty()
+					  ? VerificationException.forUnmatchedRequests(unmatchedRequests)
+					  : VerificationException.forUnmatchedNearMisses(nearMisses);
+			}
 		}
 	}
 
@@ -185,5 +171,29 @@ public class WireMockExtension implements BeforeEachCallback, AfterEachCallback,
 
 	private static void stopServer(final WireMockServer server) {
 		server.stop();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Optional<List<WireMockServer>> getServers(final ExtensionContext context, final Class<?> testClass) {
+		return Optional.ofNullable((List<WireMockServer>) context.getStore(NAMESPACE).get(testClass));
+	}
+
+	private static Stream<WireMockServer> collectServers(final ExtensionContext context) {
+		return collectTestClasses(context)
+			.map(testClass -> getServers(context, testClass))
+			.filter(Optional::isPresent)
+			.map(Optional::get)
+			.flatMap(Collection::stream);
+	}
+
+	private static Stream<Class<?>> collectTestClasses(final ExtensionContext context) {
+		return Stream.concat(
+			Stream.of(context.getRequiredTestClass()),
+			context.getParent()
+				.filter(parentContext -> parentContext != context.getRoot())
+				.map(WireMockExtension::collectTestClasses)
+				.orElseGet(Stream::empty)
+		)
+			.distinct();
 	}
 }
