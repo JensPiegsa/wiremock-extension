@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/JensPiegsa/wiremock-extension.svg?branch=master)](https://travis-ci.org/JensPiegsa/wiremock-extension)
 [![codecov](https://codecov.io/gh/JensPiegsa/wiremock-extension/branch/master/graph/badge.svg)](https://codecov.io/gh/JensPiegsa/wiremock-extension)
 [![](https://jitpack.io/v/JensPiegsa/wiremock-extension.svg)](https://jitpack.io/#JensPiegsa/wiremock-extension)
-
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3WB8AXMP4VY98)
 
 The wiremock-extension is a [JUnit 5](https://junit.org/junit5/) [extension](https://junit.org/junit5/docs/current/user-guide/#extensions) that starts [WireMock](http://wiremock.org/) before running tests and stops it afterwards. It is similar to the [WireMockRule](https://github.com/tomakehurst/wiremock/blob/master/src/main/java/com/github/tomakehurst/wiremock/junit/WireMockRule.java) ([docs](http://wiremock.org/docs/junit-rule/)) for JUnit 4.
 
